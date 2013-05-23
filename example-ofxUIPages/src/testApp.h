@@ -3,7 +3,6 @@
 
 #include "ofMain.h"
 #include "ofxUI.h"
-#include "ofxUIPage.h"
 #include "ofxUIPageManager.h"
 
 class testApp : public ofBaseApp 
@@ -27,6 +26,7 @@ class testApp : public ofBaseApp
     ofxUIPageManager pageManager;
 	ofxUICanvas* page1;
 	ofxUICanvas* page2;
+	ofxUICanvas* page3;
     
     void guiEvent(ofxUIEventArgs &e);
 };
