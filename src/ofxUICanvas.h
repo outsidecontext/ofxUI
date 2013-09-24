@@ -92,7 +92,7 @@ public:
     }
     
     void init(int w, int h, ofxUICanvas *sharedResources = NULL)
-    {        
+    {
         name = string("OFX_UI_WIDGET_CANVAS");
 		kind = OFX_UI_WIDGET_CANVAS; 
 		
@@ -104,6 +104,7 @@ public:
         
         autoDraw = true;
         autoUpdate = true;
+        bTriggerWidgetsUponLoad = true;
         
 		paddedRect = new ofxUIRectangle(-padding, -padding, w+padding*2.0, h+padding*2.0);
 		paddedRect->setParent(rect);
@@ -136,7 +137,8 @@ public:
         globalButtonDimension = OFX_UI_GLOBAL_BUTTON_DIMENSION;
         globalSpacerHeight = OFX_UI_GLOBAL_SPACING_HEIGHT;
         
-        hasKeyBoard = false; 
+        hasKeyBoard = false;
+        bInsideCanvas = false;
         
         widgetPosition = OFX_UI_WIDGET_POSITION_DOWN;
         widgetAlign = OFX_UI_ALIGN_LEFT;
@@ -296,6 +298,16 @@ public:
         }
     }
     
+    void setTriggerWidgetsUponLoad(bool _bTriggerWidgetsUponLoad)
+    {
+        bTriggerWidgetsUponLoad = _bTriggerWidgetsUponLoad;
+    }
+    
+    bool getTriggerWidgetsUponLoad()
+    {
+        return bTriggerWidgetsUponLoad;
+    }
+    
     virtual void loadSettings(string fileName)
     {
         ofxXmlSettings *XML = new ofxXmlSettings(); 
@@ -309,7 +321,9 @@ public:
             if(widget != NULL)
             {
                 loadSpecificWidgetData(widget, XML); 
-                triggerEvent(widget); 
+                if(bTriggerWidgetsUponLoad){
+                    triggerEvent(widget);   
+                }
             }
             XML->popTag(); 
         }
@@ -509,10 +523,10 @@ public:
 	{
 		if(isEnabled())
 		{
-			disable(); 
+			disable();
 		}
 		else {
-			enable(); 
+			enable();
 		}
 	}
 
@@ -550,9 +564,9 @@ public:
     }
      
     virtual void draw()
-    {
+    {		
         ofxUIPushStyle();
-        
+		
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
 
@@ -585,8 +599,7 @@ public:
             {
                 (*it)->draw(); 	
             }
-		}    
-        
+		}            
         ofxUIPopStyle();
     }
     
@@ -702,9 +715,11 @@ public:
 			{                
 				if((*it)->isVisible()) (*it)->mouseMoved(x, y); 
 			}
+            bInsideCanvas = true;
 		}
         else
         {
+            bInsideCanvas = false;
             for (map<string, ofxUIWidget*>::iterator it=widgetsAreModal.begin() ; it != widgetsAreModal.end(); it++ )
             {
                 if((*it).second->isVisible()) (*it).second->mouseMoved(x, y);
@@ -758,18 +773,24 @@ public:
 
     virtual void keyPressed(int key)
     {
-        for(vector<ofxUIWidget *>::iterator it = widgets.begin(); it != widgets.end(); ++it)
-		{
-			(*it)->keyPressed(key);
-		}
+        if(bInsideCanvas)
+        {
+            for(vector<ofxUIWidget *>::iterator it = widgets.begin(); it != widgets.end(); ++it)
+            {
+                (*it)->keyPressed(key);
+            }
+        }
     }
 
     virtual void keyReleased(int key)
     {
-		for(vector<ofxUIWidget *>::iterator it = widgets.begin(); it != widgets.end(); ++it)
-		{
-			(*it)->keyReleased(key);
-		}
+        if(bInsideCanvas)
+        {
+            for(vector<ofxUIWidget *>::iterator it = widgets.begin(); it != widgets.end(); ++it)
+            {
+                (*it)->keyReleased(key);
+            }
+        }
     }
 	
     virtual bool isHit(int x, int y)
@@ -982,7 +1003,8 @@ public:
 			ofxUIWidget *w = (*it);
 			removeWidget(w);
 		}
-        widgets.clear(); 
+        widgets.clear();
+        lastAdded = NULL; 
     }
     
     void removeWidget(ofxUIWidget *widget)
@@ -1003,7 +1025,7 @@ public:
         }
         
         //for the map
-        map<string, ofxUIWidget*>::iterator it;        
+        multimap<string, ofxUIWidget*>::iterator it;
         it=widgets_map.find(widget->getName());
         if(it != widgets_map.end())
         {
@@ -1012,7 +1034,7 @@ public:
         }
         
         //for the widgets with state         
-        for(int i = 0; i < widgetsWithState.size(); i++)
+        for(unsigned int i = 0; i < widgetsWithState.size(); i++)
         {
             ofxUIWidget *other = widgetsWithState[i]; 
             if(widget->getName() == other->getName())
@@ -1120,7 +1142,7 @@ public:
         {
 			ofxUIDropDownList *list = (ofxUIDropDownList *) widget;            
             vector<ofxUILabelToggle *> toggles = list->getToggles(); 
-			for(int i = 0; i < toggles.size(); i++)
+			for(unsigned int i = 0; i < toggles.size(); i++)
 			{
 				ofxUILabelToggle *t = toggles[i]; 
 				ofxUILabel *l2 = (ofxUILabel *) t->getLabel();
@@ -1147,7 +1169,7 @@ public:
 			ofxUIRadio *radio = (ofxUIRadio *) widget;
 			vector<ofxUIToggle *> toggles = radio->getToggles(); 
 			
-			for(int i = 0; i < toggles.size(); i++)
+			for(unsigned int i = 0; i < toggles.size(); i++)
 			{
 				ofxUIToggle *t = toggles[i]; 
 				ofxUILabel *l2 = (ofxUILabel *) t->getLabel();
@@ -1163,7 +1185,7 @@ public:
 			ofxUIToggleMatrix *matrix = (ofxUIToggleMatrix *) widget;
 			vector<ofxUIToggle *> toggles = matrix->getToggles(); 
 			
-			for(int i = 0; i < toggles.size(); i++)
+			for(unsigned int i = 0; i < toggles.size(); i++)
 			{
 				ofxUIToggle *t = toggles[i]; 
 				ofxUILabel *l2 = (ofxUILabel *) t->getLabel();
@@ -1719,14 +1741,14 @@ public:
         return widget;
     }
     
-    ofxUITextInput* addTextInput(string _name, string _textstring, int _size = OFX_UI_FONT_MEDIUM)
+    ofxUITextInput* addTextInput(string _name, string _textstring, int _size = OFX_UI_FONT_SMALL)
     {
         ofxUITextInput* widget = new ofxUITextInput(_name, _textstring, rect->getWidth()-widgetSpacing*2, _size);
         addWidgetPosition(widget, widgetPosition, widgetAlign);
         return widget;
     }
     
-    ofxUITextInput* addTextInput(string _name, string _textstring, float w, float h = 0, float x = 0, float y = 0, int _size = OFX_UI_FONT_MEDIUM)
+    ofxUITextInput* addTextInput(string _name, string _textstring, float w, float h = 0, float x = 0, float y = 0, int _size = OFX_UI_FONT_SMALL)
     {
         ofxUITextInput* widget = new ofxUITextInput(_name, _textstring, w, h, x, y, _size);
         addWidgetPosition(widget, widgetPosition, widgetAlign);
@@ -1886,6 +1908,21 @@ public:
         return widget;
     }
 
+    ofxUIBaseDraws *addBaseDraws(string _name, ofBaseDraws *_base, float _w, float _h, bool _showLabel = false)
+    {
+        ofxUIBaseDraws* widget = new ofxUIBaseDraws(_w, _h, _base, _name, _showLabel);
+        addWidgetPosition(widget, widgetPosition, widgetAlign);
+        return widget;
+    }
+    
+    ofxUIBaseDraws *addBaseDraws(string _name, ofBaseDraws *_base, bool _showLabel = false)
+    {
+        float _w = rect->getWidth()-widgetSpacing*2;
+        float _h = _w*(float)_base->getHeight()/(float)_base->getWidth();
+        ofxUIBaseDraws* widget = new ofxUIBaseDraws(_w, _h, _base, _name, _showLabel);
+        addWidgetPosition(widget, widgetPosition, widgetAlign);
+        return widget;
+    }
     ofxUIImageSampler *addImageSampler(string _name, ofImage *_image, float _w, float _h)
     {
         ofxUIImageSampler* widget = new ofxUIImageSampler(_w, _h, _image, _name);
@@ -3141,6 +3178,7 @@ protected:
 	ofxUIFont *font_large; 	
 	ofxUIFont *font_medium; 		
 	ofxUIFont *font_small;
+    bool bInsideCanvas;
  	
 	ofxUIEventArgs *GUIevent; 
     int state;
@@ -3156,7 +3194,8 @@ protected:
 	ofxUIWidget *activeFocusedWidget; 
 	bool enable_highlight_outline; 
 	bool enable_highlight_fill;
-	bool enabled; 
+	bool enabled;
+    bool bTriggerWidgetsUponLoad;
     int uniqueIDs; 
     bool hasKeyBoard; 
     
@@ -3235,7 +3274,7 @@ protected:
                     
                 case OFX_UI_TEXTINPUT_ON_ENTER:
                 {
-                    hasKeyBoard = true; 
+                    hasKeyBoard = false;
                     return;
                 }
                     break; 
