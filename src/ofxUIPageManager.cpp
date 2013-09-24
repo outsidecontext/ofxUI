@@ -144,10 +144,11 @@ void ofxUIPageManager::setupPages() {
     gui = createPage(name);
     gui->addToggle("show page list", &isPageListVisible);
     gui->addWidgetDown(new ofxUILabel("background", OFX_UI_FONT_MEDIUM));
-    gui->addSlider("bg r", 0, 255, 0.)->setIncrement(1);
-    gui->addSlider("bg g", 0, 255, 0.)->setIncrement(1);
-    gui->addSlider("bg b", 0, 255, 0.)->setIncrement(1);
-    gui->addSlider("bg a", 0, 255, 0.)->setIncrement(1);
+    gui->addSlider("bg r", 0, 255, 0.f)->setIncrement(1);
+    gui->addSlider("bg g", 0, 255, 100.f)->setIncrement(1);
+    gui->addSlider("bg b", 0, 255, 150.f)->setIncrement(1);
+    gui->addSlider("bg a", 0, 255, 255.f)->setIncrement(1);
+    bgColour.set(0,100,150);
     
     // add listener for gui events
     ofAddListener(gui->newGUIEvent, this, &ofxUIPageManager::guiEvent);
